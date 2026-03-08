@@ -7,10 +7,12 @@ import { BallCollider, CuboidCollider, Physics, RigidBody, useRopeJoint, useSphe
 import { MeshLineGeometry, MeshLineMaterial } from 'meshline';
 import * as THREE from 'three';
 
-// 🧩 Ganti import glb menjadi path dari public/
+// 3D card model path (from /public/models/)
 const cardGLB = '/models/card.glb';
-// 🧩 Tetap bisa pakai png dari src
-import lanyard from '../../assets/Lanyard/cardlanyard.jpg';
+// Image for the CARD FACE (the photo/texture shown on the physical card)
+import cardImage from '../../assets/Lanyard/cardlanyard.jpg';
+// Image for the ROPE BAND (the strap texture on the lanyard)
+import bandImage from '../../assets/images/bg.jpg';
 
 extend({ MeshLineGeometry, MeshLineMaterial });
 
@@ -43,15 +45,22 @@ function Band({ maxSpeed = 50, minSpeed = 0 }) {
   const segmentProps = { type: 'dynamic', canSleep: true, colliders: false, angularDamping: 4, linearDamping: 4 };
 
   const { nodes, materials } = useGLTF(cardGLB);
-  const texture = useTexture(lanyard);
+  // Two separate textures — change each independently
+  const cardTexture = useTexture(cardImage);  // shown on the card face
+  const bandTexture = useTexture(bandImage);  // shown on the rope/band
   useEffect(() => {
-    if (texture) {
-      texture.flipY = false;
-      texture.rotation = Math.PI;
-      texture.center.set(0.5, 0.5);
-      texture.offset.set(-0.3, 0); // Shift subject more to the left
+    if (cardTexture) {
+      cardTexture.flipY = false;
+      cardTexture.rotation = Math.PI;
+      cardTexture.center.set(0.5, 0.5);
+      cardTexture.offset.set(-0.3, 0);
     }
-  }, [texture]);
+  }, [cardTexture]);
+  useEffect(() => {
+    if (bandTexture) {
+      bandTexture.wrapS = bandTexture.wrapT = THREE.RepeatWrapping;
+    }
+  }, [bandTexture]);
   const [curve] = useState(() => new THREE.CatmullRomCurve3([new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()]));
   const [dragged, drag] = useState(false);
   const [hovered, hover] = useState(false);
@@ -103,7 +112,6 @@ function Band({ maxSpeed = 50, minSpeed = 0 }) {
   });
 
   curve.curveType = 'chordal';
-  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
 
   return (
     <>
@@ -128,7 +136,7 @@ function Band({ maxSpeed = 50, minSpeed = 0 }) {
             onPointerUp={(e) => (e.target.releasePointerCapture(e.pointerId), drag(false))}
             onPointerDown={(e) => (e.target.setPointerCapture(e.pointerId), drag(new THREE.Vector3().copy(e.point).sub(vec.copy(card.current.translation()))))}>
             <mesh geometry={nodes.card.geometry}>
-              <meshPhysicalMaterial map={texture} map-anisotropy={16} clearcoat={1} clearcoatRoughness={0.15} roughness={0.9} metalness={0.8} />
+              <meshPhysicalMaterial map={cardTexture} map-anisotropy={16} clearcoat={1} clearcoatRoughness={0.15} roughness={0.9} metalness={0.8} />
             </mesh>
             <mesh geometry={nodes.clip.geometry} material={materials.metal} material-roughness={0.3} />
             <mesh geometry={nodes.clamp.geometry} material={materials.metal} />
@@ -142,7 +150,7 @@ function Band({ maxSpeed = 50, minSpeed = 0 }) {
           depthTest={false}
           resolution={isSmall ? [1000, 2000] : [1000, 1000]}
           useMap
-          map={texture}
+          map={bandTexture}
           repeat={[-4, 1]}
           lineWidth={1}
         />
